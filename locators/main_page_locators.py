@@ -30,3 +30,4 @@ class MainPageLocators:
     ORDER_MODAL_OVERLAY = (By.CLASS_NAME, "Modal_modal_overlay__x2ZCr")
     TODAY_ORDERS_COUNT = (By.XPATH,
                           "//p[text()='Выполнено за сегодня:']/following-sibling::p[contains(@class, 'text_type_digits-large')]")
+    MODAL_OVERLAY = (By.CLASS_NAME, "Modal_modal_overlay__x2ZCr")

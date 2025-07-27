@@ -71,7 +71,7 @@ class TestOrderFeed:
 
         with allure.step("Оформить заказ и получить номер из модального окна"):
             main_page.click_order_button()
-            main_page.wait_for_order_modal(timeout=15)
+            main_page.wait_for_order_modal(timeout=7)
             order_number = main_page.get_final_order_number_from_modal()
             main_page.close_order_modal()
 

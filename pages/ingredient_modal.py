@@ -1,28 +1,32 @@
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+import allure
 from locators.main_page_locators import MainPageLocators
+from pages.base_page import BasePage
 
 
-class IngredientModal:
+class IngredientModal(BasePage):
     def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 7)
+        super().__init__(driver)
 
     def is_modal_visible(self):
-        return self.wait.until(EC.visibility_of_element_located(MainPageLocators.MODAL_WINDOW))
+        with allure.step("Проверка, что модальное окно отображается"):
+            return self.wait_until_visible(MainPageLocators.MODAL_WINDOW, timeout=7)
 
     def get_modal_header_text(self):
-        element = self.wait.until(EC.visibility_of_element_located(MainPageLocators.MODAL_HEADER))
-        return element.text
+        with allure.step("Получение заголовка модального окна"):
+            element = self.wait_until_visible(MainPageLocators.MODAL_HEADER, timeout=7)
+            return element.text
 
     def close_modal(self):
-        close_button = self.wait.until(EC.element_to_be_clickable(MainPageLocators.CLOSE_BUTTON))
-        close_button.click()
-        self.wait.until(EC.invisibility_of_element_located(MainPageLocators.MODAL_WINDOW))
+        with allure.step("Закрытие модального окна"):
+            close_button = self.wait_until_clickable(MainPageLocators.CLOSE_BUTTON, timeout=7)
+            self.driver.execute_script("arguments[0].click();", close_button)
+            self.wait_until_invisible(MainPageLocators.MODAL_WINDOW, timeout=7)
 
     def is_modal_closed(self):
-        return self.wait.until(EC.invisibility_of_element_located(MainPageLocators.MODAL_WINDOW))
+        with allure.step("Проверка, что модальное окно закрыто"):
+            return self.wait_until_invisible(MainPageLocators.MODAL_WINDOW, timeout=7)
 
     def click_add_button(self):
-        add_button = self.wait.until(EC.element_to_be_clickable(MainPageLocators.ADD_BUTTON))
-        add_button.click()
+        with allure.step("Нажатие на кнопку 'Добавить' в модальном окне"):
+            add_button = self.wait_until_clickable(MainPageLocators.ADD_BUTTON, timeout=7)
+            add_button.click()

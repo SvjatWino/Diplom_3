@@ -1,38 +1,27 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import allure
 from pages.base_page import BasePage
+from locators.account_page_locators import AccountPageLocators
+
 
 class LoginPage(BasePage):
-    EMAIL_INPUT = (By.NAME, "name")
-    PASSWORD_INPUT = (By.NAME, "Пароль")
-    LOGIN_BUTTON = (By.XPATH, "//button[text()='Войти']")
-
     def login(self, email, password):
-        email_field = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located(self.EMAIL_INPUT)
-        )
-        password_field = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located(self.PASSWORD_INPUT)
-        )
-        login_button = WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(self.LOGIN_BUTTON)
-        )
+        with allure.step(f"Вход в систему с email: {email}"):
+            email_field = self.wait_until_visible(AccountPageLocators.EMAIL_INPUT, timeout=10)
+            password_field = self.wait_until_visible(AccountPageLocators.PASSWORD_INPUT, timeout=10)
+            login_button = self.wait_until_clickable(AccountPageLocators.LOGIN_BUTTON, timeout=10)
 
-        email_field.clear()
-        password_field.clear()
+            email_field.clear()
+            password_field.clear()
 
-        email_field.send_keys(email)
-        password_field.send_keys(password)
+            email_field.send_keys(email)
+            password_field.send_keys(password)
 
-        login_button.click()
+            login_button.click()
 
     def wait_for_login_success(self):
-        return WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located((By.XPATH, "//button[text()='Оформить заказ']"))
-        )
+        with allure.step("Ожидание успешной авторизации (кнопка 'Оформить заказ')"):
+            return self.wait_until_visible(AccountPageLocators.ORDER_BUTTON, timeout=10)
 
     def wait_for_page_to_load(self):
-        WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located((By.XPATH, "//button[text()='Войти']"))
-        )
+        with allure.step("Ожидание загрузки страницы логина (кнопка 'Войти')"):
+            self.wait_until_visible(AccountPageLocators.LOGIN_BUTTON, timeout=10)

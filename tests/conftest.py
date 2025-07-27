@@ -12,18 +12,15 @@ from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from urls import BASE_URL
+from selenium.common.exceptions import ElementClickInterceptedException
 from pages.register_page import RegisterPage
 from pages.login_page import LoginPage
 from pages.main_page import MainPage
 from locators.main_page_locators import MainPageLocators
-from selenium.common.exceptions import ElementClickInterceptedException
+from pages.base_page import BasePage
+from urls import BASE_URL, REGISTER_API_URL, DELETE_USER_API_URL
 
-
-MODAL_OVERLAY = (By.CLASS_NAME, "Modal_modal_overlay__x2ZCr")
 
 
 @pytest.fixture(params=["chrome", "firefox"])
@@ -53,14 +50,15 @@ def driver(request):
 @pytest.fixture(autouse=True)
 def close_ingredient_modal_after_test(driver):
     yield
+    base_page = BasePage(driver)
     try:
-        close_button = driver.find_element(By.CLASS_NAME, "Modal_modal_close__TnseC")
+        close_button_locator = (By.CLASS_NAME, "Modal_modal_close__TnseC")
+        close_button = base_page.wait_until_visible(close_button_locator, timeout=5)
         close_button.click()
-        WebDriverWait(driver, 5).until(
-            EC.invisibility_of_element_located((By.CLASS_NAME, "Modal_modal__P3_V5"))
-        )
-    except (NoSuchElementException, TimeoutException):
+        base_page.wait_until_invisible(close_button_locator, timeout=5)
+    except (TimeoutException, NoSuchElementException):
         pass
+
 
 @pytest.fixture
 def user_data():
@@ -68,13 +66,12 @@ def user_data():
     password = "123456"
 
     # Регистрация пользователя через API
-    url = "https://stellarburgers.nomoreparties.site/api/auth/register"
     payload = {
         "email": login,
         "password": password,
         "name": "Test User"
     }
-    response = requests.post(url, json=payload)
+    response = requests.post(REGISTER_API_URL, json=payload)
     assert response.status_code == 200, "Не удалось создать пользователя через API"
 
     yield {"email": login, "password": password}
@@ -83,34 +80,26 @@ def user_data():
     token = response.json().get("accessToken")
     if token:
         headers = {"Authorization": token}
-        requests.delete("https://stellarburgers.nomoreparties.site/api/auth/user", headers=headers)
+        requests.delete(DELETE_USER_API_URL, headers=headers)
+
 
 @pytest.fixture
 def authorized_driver(driver):
+    base_page = BasePage(driver)
     driver.get(BASE_URL)
 
     try:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "Modal_modal_overlay__x2ZCr"))
-        )
-        WebDriverWait(driver, 10).until_not(
-            EC.presence_of_element_located((By.CLASS_NAME, "Modal_modal_overlay__x2ZCr"))
-        )
+        base_page.wait_until_visible(MainPageLocators.MODAL_OVERLAY, timeout=5)
+        base_page.wait_until_invisible(MainPageLocators.MODAL_OVERLAY, timeout=10)
     except TimeoutException:
         pass
 
     try:
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(MainPageLocators.LOGIN_ACCOUNT_BUTTON)
-        )
-        driver.find_element(*MainPageLocators.LOGIN_ACCOUNT_BUTTON).click()
+        base_page.click_by_locator(MainPageLocators.LOGIN_ACCOUNT_BUTTON, timeout=10)
     except (TimeoutException, ElementClickInterceptedException):
-        element = driver.find_element(*MainPageLocators.LOGIN_ACCOUNT_BUTTON)
-        driver.execute_script("arguments[0].click();", element)
+        base_page.click_element_via_js(MainPageLocators.LOGIN_ACCOUNT_BUTTON)
 
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.LINK_TEXT, "Зарегистрироваться"))
-    ).click()
+    base_page.wait_until_clickable((By.LINK_TEXT, "Зарегистрироваться"), timeout=10).click()
 
     register_page = RegisterPage(driver)
     register_page.wait_for_page_to_load()
@@ -130,8 +119,3 @@ def authorized_driver(driver):
     main_page.wait_for_page_to_load()
 
     yield main_page
-
-
-@pytest.fixture
-def base_url():
-    return BASE_URL
